@@ -1,0 +1,48 @@
+Sub GetColumn()
+    Dim strWhereToCopy As String, strStartCellColName As String, strFile As String
+    Dim strListSheet As String
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    strListSheet = "Select"
+    strTargetSheet = "Consolidated"
+    strTargetColumn = 1
+    
+    On Error GoTo ErrH
+    Sheets(strListSheet).Select
+    Range("B2").Select
+    
+    'this is the main loop, we will open the files one by one and copy their data into the masterdata sheet
+    Set currentWB = ActiveWorkbook
+    Set currentCell = ActiveCell
+    Do While ActiveCell.Value <> ""
+        
+        Set currentCell = ActiveCell
+        strSourceSheet = "File" & "_" & currentCell.Offset(0, -1).Value & "_" & currentCell.Value
+        strSourceColumn = currentCell.Offset(0, 1).Value
+        
+        For Each Sheet In currentWB.Worksheets
+            If Sheet.Name = strSourceSheet Then
+                Sheets(Sheet.Name).AutoFilterMode = False
+                Sheets(Sheet.Name).Columns(strSourceColumn).Copy Destination:=Sheets(strTargetSheet).Columns(strTargetColumn)
+                Sheets(strTargetSheet).Cells(1, strTargetColumn).Value = Sheet.Name & " | " & Sheets(strTargetSheet).Cells(1, strTargetColumn).Value
+                strTargetColumn = strTargetColumn + 1
+            End If
+        Next Sheet
+        
+        Sheets(strListSheet).Select
+        ActiveCell.Offset(1, 0).Select
+        
+    Loop
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    Exit Sub
+    
+ErrH:
+    MsgBox "Error. The data copy operation is not complete."
+    Exit Sub
+
+End Sub

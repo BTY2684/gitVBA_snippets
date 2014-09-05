@@ -1,0 +1,135 @@
+Sub SaveNumberedVersion()
+'Yang Liu
+'First version 18 June 2014
+'to store version in a document variable
+'and improve document type handling
+
+    Dim ActSheet As Worksheet
+    Dim ActBook As Workbook
+    Dim TmpBook As Workbook
+    Dim CurrentFile As String
+    Dim CurrentFileMain As String
+    Dim NewFileType As String
+    Dim NewFileName As String
+    Dim strDate As String
+    Dim strPath As String
+    Dim strFile As String
+    Dim NewFile As String
+    Dim intPosExt As Long
+    Dim intPosVer As Long
+    Dim strVer As String
+    Dim oVars As Variant
+    Dim sExt As String
+    Dim numExt As Integer
+
+'    Set oVars = ActiveDocument.Variant
+ 
+    Application.ScreenUpdating = False
+    
+    CurrentFile = ActiveWorkbook.FullName
+    strDate = Format((Date), "dd MMM yyyy")
+    
+'    With ActiveDocument
+'       On Error GoTo CancelledByUser
+'        If Len(.Path) = 0 Then
+'            .Save
+'        End If
+'        strPath = .Path
+'        strFile = .Name
+'    End With
+    
+    intPosVer = InStr(CurrentFile, " - ") 'Mark the version number
+    sExt = Right(CurrentFile, Len(CurrentFile) - InStrRev(CurrentFile, "."))
+    intPosExt = InStrRev(CurrentFile, ".")
+    
+    If intPosVer = 0 Then
+    'No version number
+     'Mark the extension instead
+        strVer = "0"
+        CurrentFileMain = Left(CurrentFile, intPosExt - 1) 'Strip the extension or version number
+    Else
+        strVer = Right(Left(CurrentFile, intPosExt - 1), 1)
+        CurrentFileMain = Left(CurrentFile, intPosVer - 1) 'Strip the extension or version number
+    End If
+    
+    Set ActBook = Workbooks(ActiveWorkbook.Name)
+'    NewFileType = "Excel Files 1997-2003 (*.xls), *.xls," & _
+'               "Excel Files 2007 (*.xlsx), *.xlsx," & _
+'               "All files (*.*), *.*"
+               
+        strVer = Val(strVer) + 1 'Increment number
+        'Define the new version filename
+        
+        Select Case sExt
+            Case "xlsx": numExt = 51
+            Case "xlsm":
+                If ActBook.HasVBProject Then
+                    sExt = "xlsm": numExt = 52
+                Else
+                    sExt = "xlsx": numExt = 51
+                End If
+            Case "xls":  numExt = 56
+            Case "xlsb": numExt = 50
+            Case "csv":  numExt = 6
+            Case "txt":  numExt = -4158
+            Case "prn":  numExt = 36
+            Case Else: numExt = 0
+        End Select
+        
+        
+        NewFileName = CurrentFileMain & " - " & strDate & _
+                      " - Version " & Format(Val(strVer), "00#") _
+                      & Chr(46) & sExt
+                      
+Start:
+        On Error Resume Next
+'        ActBook.Activate
+'        Set ActSheet = ActBook.Worksheets(1)
+'        ActSheet.Activate
+'        ActSheet.Select
+        
+
+        
+'        strVer = oVars("varVersion").Value
+        If strVer = "" Then
+            'Variable does not exist
+            strVer = "0" 'So create it
+            GoTo Start:
+        End If
+        
+        On Error GoTo 0
+        
+'           NewFile = Application.GetSaveAsFilename( _
+'                                 InitialFileName:=NewFileName, _
+'                                 fileFilter:=NewFileType)
+
+
+           If NewFileName <> "" And NewFileName <> "False" Then
+                On Error GoTo Reversion
+                    ActBook.SaveAs Filename:=NewFileName, _
+                        FileFormat:=numExt, _
+                        Password:="", _
+                        WriteResPassword:="", _
+                        ReadOnlyRecommended:=False, _
+                        CreateBackup:=False
+               
+               Set ActBook = ActiveWorkbook
+               Workbooks.Open CurrentFile
+               ActBook.Close
+'               TmpBook.Close
+           End If
+           Exit Sub
+ 
+CancelledByUser:  'Error handler
+    Application.ScreenUpdating = True
+    MsgBox "Cancelled By User", , "Operation Cancelled"
+    
+Reversion:
+        strVer = Val(strVer) + 1 'Increment number
+        'Define the new version filename
+        NewFileName = CurrentFileMain & " - " & strDate & _
+                      " - Version " & Format(Val(strVer), "00#") _
+                      & Chr(46) & sExt
+        Resume
+
+End Sub
